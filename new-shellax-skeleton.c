@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <unistd.h>
+#include <fcntl.h>
 const char *sysname = "shellax";
 
 enum return_codes {
@@ -355,7 +356,12 @@ int process_command(struct command_t *command) {
     exit(0);
   } else {
     // TODO: implement background processes here
-    wait(0); // wait for child process to finish
+    if (!command->background){
+      waitpid(pid, NULL, 0); // wait for child process to finish
+    }
+    else{
+      printf("Executing in the background. PID is: %d\n", (int) pid);
+    }
     return SUCCESS;
   }
 

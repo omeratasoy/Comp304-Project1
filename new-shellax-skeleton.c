@@ -352,7 +352,15 @@ int process_command(struct command_t *command) {
 
     // TODO: do your own exec with path resolving using execv()
     // do so by replacing the execvp call below
-    execvp(command->name, command->args); // exec+args+path
+    
+    char *program_path = malloc(500);
+    strcat(program_path, "/usr/bin/");
+    strcat(program_path, command->name);
+    execv(program_path, command->args);
+    // execvp(command->name, command->args); // exec+args+path
+    
+    // execv has returned, the program path was not found, memory leak risk
+    free(program_path);
     exit(0);
   } else {
     // TODO: implement background processes here

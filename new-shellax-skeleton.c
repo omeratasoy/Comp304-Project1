@@ -101,7 +101,6 @@ int parse_command(char *buf, struct command_t *command) {
     command->auto_complete = true;
   if (len > 0 && buf[len - 1] == '&') // background
     command->background = true;
-
   char *pch = strtok(buf, splitters);
   if (pch == NULL) {
     command->name = (char *)malloc(1);
@@ -309,6 +308,48 @@ int main() {
   return 0;
 }
 
+int myRedirect(struct command_t *command){ 
+    if (command->redirects[0]){
+      //printf("< : %s\n", command->redirects[0]);
+      const char* inputfile = command->redirects[0];
+      if (inputfile){
+        int fd = open(inputfile, O_RDONLY, 0666);
+	int error = dup2(fd, STDIN_FILENO);
+	if (error == -1){
+		perror("Error in redirect 0\n");
+		return 1;
+	}
+      }
+    }
+    if (command->redirects[1]){ 
+      //printf("> : %s\n", command->redirects[1]);
+      
+      const char* outputfile = command->redirects[1];
+      if (outputfile){
+        int fd = open(outputfile, O_CREAT | O_WRONLY | O_TRUNC, 0666);
+	int error = dup2(fd, STDOUT_FILENO);
+	if (error == -1){
+		perror("Error in redirect 1\n");
+		return 1;
+	}
+      }
+    }
+    if (command->redirects[2]){ 
+      //printf(">> : %s\n", command->redirects[2]);
+      
+      const char* appendfile = command->redirects[2];
+      if (appendfile){
+        int fd = open(appendfile, O_CREAT | O_WRONLY | O_APPEND, 0666);
+	int error = dup2(fd, STDOUT_FILENO);
+	if (error == -1){
+		perror("Error in redirect 0\n");
+		return 1;
+	}
+      }
+    }
+    return 0;
+}
+
 int process_command(struct command_t *command) {
   int r;
   if (strcmp(command->name, "") == 0)
@@ -325,7 +366,7 @@ int process_command(struct command_t *command) {
       return SUCCESS;
     }
   }
-
+		  
   pid_t pid = fork();
   if (pid == 0) // child
   {
@@ -349,9 +390,14 @@ int process_command(struct command_t *command) {
     command->args[0] = strdup(command->name);
     // set args[arg_count-1] (last) to NULL
     command->args[command->arg_count - 1] = NULL;
-
-    // TODO: do your own exec with path resolving using execv()
+    // I/O redirection
+    // <: 0, >: 1, <<: 2
+    int redirectRet = myRedirect(command);
+    if (redirectRet != 0) return redirectRet;
+    
+    // do your own exec with path resolving using execv()
     // do so by replacing the execvp call below
+    
     
     char *program_path = malloc(500);
     strcat(program_path, "/usr/bin/");
@@ -362,8 +408,9 @@ int process_command(struct command_t *command) {
     // execv has returned, the program path was not found, memory leak risk
     free(program_path);
     exit(0);
+    
   } else {
-    // TODO: implement background processes here
+    // implement background processes here
     if (!command->background){
       waitpid(pid, NULL, 0); // wait for child process to finish
     }

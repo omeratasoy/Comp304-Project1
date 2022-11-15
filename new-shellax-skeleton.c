@@ -374,6 +374,21 @@ void moodprinter(struct command_t *command){
   }
 }
 
+void lsfiles(struct command_t *command){
+  // system("python3 lsfiles.py");
+  char *py = "/usr/bin/python3";
+  char *ls = "./lsfiles.py";
+  char *args[] = {py, ls, NULL};
+  pid_t pypid = fork();
+  if (pypid == 0){
+    execv(py, args);
+    perror("python\n");
+  }
+  else {
+    wait(NULL);
+  }
+}
+
 void chatroom(struct command_t *command){
   // TODO chatroom
   if (command->arg_count != 2) {
@@ -652,6 +667,11 @@ int process_command(struct command_t *command) {
     // handle pipes
     int pipeRet = myPipe(command);
     if(pipeRet != 10) return pipeRet;
+    return SUCCESS;
+  }
+
+  if (strcmp(command->name, "lsfiles") == 0){
+    lsfiles(command);
     return SUCCESS;
   }
 

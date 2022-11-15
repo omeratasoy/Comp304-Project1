@@ -314,6 +314,66 @@ int main() {
   return 0;
 }
 
+void moodprinter(struct command_t *command){
+  int input = -1;
+  int error;
+  printf("How is your mood today?\n");
+  printf("1. happy\n");
+  printf("2. sad\n");
+  printf("3. angry\n");
+  printf("4. rageous\n");
+  printf("5. suspicious\n");
+  printf("6. surprised\n");
+  printf("7. bored\n");
+  printf("8. full of love\n");
+  printf("9. cheerful\n");
+  printf("10. stunned\n");
+  while (input < 1 || input > 10){
+    printf("Choose one of these numbers: ");
+    error = scanf("%d", &input);
+    if (error != 1) {
+      break;
+    }
+  }
+  if (input > 0 && input < 11){
+    printf("This is your mood emoji: ");
+  }
+  switch (input) {
+	  case 1:
+		  printf("[^w^]\n");
+		  break;
+	  case 2:
+		  printf("( T~~T )\n");
+		  break;
+	  case 3:
+		  printf("•`_´•\n");
+		  break;
+	  case 4:
+		  printf("( ╯°□°)╯┻━━┻\n");
+		  break;
+	  case 5:
+		  printf("( `_>´)\n");
+		  break;
+	  case 6:
+		  printf("( 0 _ 0 )\n");
+		  break;
+	  case 7:
+		  printf("(-_-)\n");
+		  break;
+	  case 8:
+		  printf("( ˘ ³˘)\n");
+		  break;
+	  case 9:
+		  printf("\\(^o^)/\n");
+		  break;
+	  case 10:
+		  printf("(*_*)\n");
+		  break;
+	  default:
+		  printf("invalid input\n");
+  }
+}
+
 void chatroom(struct command_t *command){
   // TODO chatroom
   if (command->arg_count != 2) {
@@ -581,7 +641,7 @@ int process_command(struct command_t *command) {
     if(pipeRet != 10) return pipeRet;
     return SUCCESS;
   }
-  
+
   if (strcmp(command->name, "chatroom") == 0) {
     // TODO chatroom
     chatroom(command);
@@ -593,7 +653,13 @@ int process_command(struct command_t *command) {
     int pipeRet = myPipe(command);
     if(pipeRet != 10) return pipeRet;
     return SUCCESS;
-  }	  
+  }
+
+  if (strcmp(command->name, "moodprinter") == 0){
+    moodprinter(command);
+    return SUCCESS;
+  }
+		  
 
   pid_t pid = fork();
   if (pid == 0) // child

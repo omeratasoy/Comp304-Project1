@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #define READ_END 0
 #define WRITE_END 1
 // Esma Eray 71719, Omer Atasoy 71507
@@ -313,6 +314,100 @@ int main() {
   return 0;
 }
 
+void chatroom(struct command_t *command){
+  // TODO chatroom
+  if (command->arg_count != 2) {
+    fprintf(stderr, "%d arguments in chatroom. 2 needed\n", command->arg_count);
+    return;
+  }
+  FILE *stdinfp = stdin;
+  int fifoRead, fifoWrite;
+  char readMsg[500] = "";
+  char *writeMsg;
+  char longWriteMsg[500] = "";
+  size_t len = 0;
+  const char *roomname_short = command->args[0];
+  const char *username_short = command->args[1];
+  char roomname[500] = "";
+  char username[500] = "";
+  strcat(roomname, "/tmp/chatroom-");
+  strcat(roomname, roomname_short);
+  strcpy(username, roomname);
+  strcat(username, "/");
+  strcat(username, username_short);
+  //printf("roomname %s\nusername %s\n", roomname, username);
+  mkdir("/tmp", 0755); // fails if directory exists
+  mkdir(roomname, 0755); // fails if directory exists
+  int errorFifo = mkfifo(username, 0666);
+  // if (errorFifo < 0) return;
+  printf("Welcome to %s!\n", roomname_short);
+  struct dirent *users;
+  DIR *roomFolder;
+  pid_t pidWrite;
+  pid_t pid = fork();
+  if (pid == 0){
+    // Child
+    while (1){
+      // READ
+      fifoRead = open(username, O_RDONLY);
+      read(fifoRead, readMsg, sizeof(readMsg));
+      //printf("fifoRead\n");
+      printf("[%s] %s\n",roomname_short, readMsg);
+    }
+  } 
+  else {
+    // Parent
+    while(1){
+      // WRITE
+      roomFolder = opendir(roomname);
+      if (roomFolder == NULL) {
+        perror("error with opening directory\n");
+        return;
+      }
+      //printf("[%s] %s: ", roomname_short, username_short);
+      getline(&writeMsg, &len, stdinfp);
+      while ((users = readdir(roomFolder)) != NULL){
+        //printf("%s %d\n", users->d_name, users->d_type); // d-Type 1 is fifo
+	if (users->d_type != 1) {
+          //printf("%s is not fifo, its type is %d\n", users->d_name, users->d_type);
+          continue;
+	}
+	if (strcmp(users->d_name, username_short) == 0){
+	  //printf("skipping %s\n", users->d_name);
+	  continue;
+	}
+	char longUsername[500] = "";
+	strcpy(longUsername, roomname);
+	strcat(longUsername, "/");
+	strcat(longUsername, users->d_name);
+	//printf("long username is %s\n", longUsername);
+	pidWrite = fork();
+	if (pidWrite == 0){
+          // Child Write
+	  //printf("attempting to write to %s\n", longUsername);
+	  //getline(&writeMsg, &len, stdinfp);
+	  strcpy(longWriteMsg, username_short);
+	  strcat(longWriteMsg, ": ");
+	  strcat(longWriteMsg, writeMsg);
+	  fifoWrite = open(longUsername, O_WRONLY);
+	  write(fifoWrite, longWriteMsg, sizeof(longWriteMsg));
+	  //longWriteMsg[0] = '\0';
+
+          exit(0);
+	}
+	else {
+	  // Parent Write
+	  //printf("waiting on writing to %s\n", longUsername);
+	  waitpid(pidWrite, NULL, 0);
+	  //printf("waited on writing to %s\n", longUsername);
+	}
+      }
+      closedir(roomFolder);
+    }
+  }
+  //closedir(roomFolder);
+}
+
 void uniq(struct command_t *command){
   bool cFlag = false;
   if (command->arg_count>0 && (strcmp(command->args[0], "--count") == 0 || strcmp(command->args[0], "-c") == 0)){
@@ -486,7 +581,20 @@ int process_command(struct command_t *command) {
     if(pipeRet != 10) return pipeRet;
     return SUCCESS;
   }
-		  
+  
+  if (strcmp(command->name, "chatroom") == 0) {
+    // TODO chatroom
+    chatroom(command);
+    // I/O redirection
+    // <: 0, >: 1, <<: 2
+    int redirectRet = myRedirect(command);
+    if (redirectRet != 0) return redirectRet;
+    // handle pipes
+    int pipeRet = myPipe(command);
+    if(pipeRet != 10) return pipeRet;
+    return SUCCESS;
+  }	  
+
   pid_t pid = fork();
   if (pid == 0) // child
   {

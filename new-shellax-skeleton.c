@@ -7,6 +7,11 @@
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#define READ_END 0
+#define WRITE_END 1
+// Esma Eray 71719, Omer Atasoy 71507
 const char *sysname = "shellax";
 
 enum return_codes {
@@ -308,6 +313,56 @@ int main() {
   return 0;
 }
 
+int myPipe(struct command_t *command){ 
+      if (!(command->next)) return 10;
+      int pipefd[2];
+      if (pipe(pipefd) == -1){
+	      perror("Error in pipe pipe\n");
+	      return 1;
+      }
+      int pipepid1 = fork();
+      if (pipepid1 < 0) {
+	      perror("Error in pipe fork 1\n");
+	      return 1;
+      }
+      if (pipepid1 == 0){
+	      dup2(pipefd[WRITE_END], STDOUT_FILENO);
+	      close(pipefd[READ_END]);
+	      close(pipefd[WRITE_END]);
+	      //execvp(command->name, command->args);
+	      //exit(0);
+	      char *program_path = malloc(500);
+	      strcat(program_path, "/usr/bin/");
+	      strcat(program_path, command->name);
+	      execv(program_path, command->args);
+	      // execvp(command->name, command->args); // exec+args+path    
+	      // execv has returned, the program path was not found, memory leak risk
+	      free(program_path);
+	      exit(0);
+      }
+      int pipepid2 = fork();
+      if (pipepid2 < 0) {
+	      perror("Error in pipe for 2\n");
+	      return 1;
+      }
+      if (pipepid2 == 0) {
+	      dup2(pipefd[READ_END], STDIN_FILENO);
+	      close(pipefd[READ_END]);
+	      close(pipefd[WRITE_END]);
+	      
+              command = command->next; 
+	      process_command(command);
+	      exit(0);
+      }
+
+      close(pipefd[READ_END]);
+      close(pipefd[WRITE_END]);
+      waitpid(pipepid1, NULL, 0);
+      waitpid(pipepid2, NULL, 0);
+      exit(0);
+      // return 0;
+}
+
 int myRedirect(struct command_t *command){ 
     if (command->redirects[0]){
       //printf("< : %s\n", command->redirects[0]);
@@ -355,7 +410,7 @@ int process_command(struct command_t *command) {
   if (strcmp(command->name, "") == 0)
     return SUCCESS;
 
-  if (strcmp(command->name, "exit") == 0)
+  if ((strcmp(command->name, "exit") == 0) || (strcmp(command->name, "quit") == 0) || (strcmp(command->name, "q") == 0))
     return EXIT;
 
   if (strcmp(command->name, "cd") == 0) {
@@ -394,6 +449,9 @@ int process_command(struct command_t *command) {
     // <: 0, >: 1, <<: 2
     int redirectRet = myRedirect(command);
     if (redirectRet != 0) return redirectRet;
+    // handle pipes
+    int pipeRet = myPipe(command); // function
+    if(pipeRet != 10) return 1;
     
     // do your own exec with path resolving using execv()
     // do so by replacing the execvp call below

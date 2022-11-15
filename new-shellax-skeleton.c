@@ -313,6 +313,59 @@ int main() {
   return 0;
 }
 
+void uniq(struct command_t *command){
+  bool cFlag = false;
+  if (command->arg_count>0 && (strcmp(command->args[0], "--count") == 0 || strcmp(command->args[0], "-c") == 0)){
+    cFlag = true;
+  }
+  FILE *fp = stdin;
+  char *current = NULL;
+  char *next = NULL;
+  size_t len = 0;
+  ssize_t error;
+  ssize_t error2;
+  int count = 1;
+  error = getline(&current, &len, fp);
+  while((error = getline(&next, &len, fp)) >= 0){
+    if(strcmp(current, next) == 0){
+      count++;
+      continue;
+    }
+    else{
+      if (cFlag){
+        printf("%6d %s", count, current);
+      }
+      else { 
+        printf("%s", current);
+      }
+      count = 1;
+      strcpy(current, next);
+    }
+  }
+  if (strlen(next)>0){
+    if (cFlag){
+      printf("%6d %s", count, current);
+    }
+    else { 
+      printf("%s", current);
+    }
+  }
+  else {
+    if (cFlag){
+      printf("%6d %s", count, current);
+    }
+    else { 
+      printf("%s", current);
+    }
+  }
+  if(current){
+    free(current);
+  }
+  if(next){
+    free(next);
+  }
+}
+
 int myPipe(struct command_t *command){ 
       if (!(command->next)) return 10;
       int pipefd[2];
@@ -420,6 +473,18 @@ int process_command(struct command_t *command) {
         printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
       return SUCCESS;
     }
+  }
+
+  if (strcmp(command->name, "uniq") == 0) {
+    uniq(command); 
+    int redirectRet = myRedirect(command);
+    if (redirectRet != 0) return redirectRet;
+    // I/O redirection
+    // <: 0, >: 1, <<: 2
+    // handle pipes
+    int pipeRet = myPipe(command); // function
+    if(pipeRet != 10) return pipeRet;
+    return SUCCESS;
   }
 		  
   pid_t pid = fork();

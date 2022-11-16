@@ -424,10 +424,12 @@ void chatroom(struct command_t *command){
     // Child
     while (1){
       // READ
+      printf("\r[%s] %s > ", roomname_short, username_short);
+      fflush(stdout);
       fifoRead = open(username, O_RDONLY);
       read(fifoRead, readMsg, sizeof(readMsg));
       //printf("fifoRead\n");
-      printf("[%s] %s\n",roomname_short, readMsg);
+      printf("\r[%s] %s",roomname_short, readMsg);
     }
   } 
   else {
@@ -439,7 +441,8 @@ void chatroom(struct command_t *command){
         perror("error with opening directory\n");
         return;
       }
-      //printf("[%s] %s: ", roomname_short, username_short);
+      printf("\r[%s] %s > ", roomname_short, username_short);
+      fflush(stdout);
       getline(&writeMsg, &len, stdinfp);
       while ((users = readdir(roomFolder)) != NULL){
         //printf("%s %d\n", users->d_name, users->d_type); // d-Type 1 is fifo

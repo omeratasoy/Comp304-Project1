@@ -400,12 +400,38 @@ void wiseman(struct command_t *command){
     return;
   }
   char cron[256];
-  sprintf(cron, "echo '*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt' >> tempcron", command->args[0]);
+  int oldStdout;
+  int oldStdin;
+  int newStdin;
+  int newStdout;
+  //FILE *tempcron;
+  int tempcron;
+  //sprintf(cron, "echo '*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt' >> tempcron", command->args[0]);
+  sprintf(cron, "*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt\n", command->args[0]);
+  //printf("hi: %s\n", cron);
+  oldStdout = dup(STDOUT_FILENO);
+  oldStdin = dup(STDIN_FILENO);
+  newStdout = open("tempcron", O_CREAT | O_RDWR | O_TRUNC, 0777);
+  dup2(newStdout, STDOUT_FILENO);
+  close(newStdout);
+  system("crontab -l");
+  dup2(oldStdout, STDOUT_FILENO);
+  close(oldStdout);
   
-  system("crontab -l > tempcron");
+  /*tempcron = fopen("tempcron", "a");
+  fprintf(tempcron, "%s", cron);*/
+  tempcron = open("tempcron", O_RDWR | O_APPEND);
+  write(tempcron, cron, strlen(cron));
+  close(tempcron);
+
+  system("crontab tempcron");
+
+  remove("tempcron");
+  
+  /*system("crontab -l > tempcron");
   system(cron);
   system("crontab tempcron");
-  system("rm tempcron");
+  system("rm tempcron");*/
 }
 
 void chatroom(struct command_t *command){

@@ -389,6 +389,25 @@ void lsfiles(struct command_t *command){
   }
 }
 
+void wiseman(struct command_t *command){
+  // TODO wiseman
+  if(command->arg_count != 1){
+    fprintf(stderr, "%d arguments in wiseman. 1 needed\n", command->arg_count);
+    return;
+  }
+  if (atoi(command->args[0]) <= 0){
+    fprintf(stderr, "Please enter a positive integer. You entered %s\n", command->args[0]);
+    return;
+  }
+  char cron[256];
+  sprintf(cron, "echo '*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt' >> tempcron", command->args[0]);
+  
+  system("crontab -l > tempcron");
+  system(cron);
+  system("crontab tempcron");
+  system("rm tempcron");
+}
+
 void chatroom(struct command_t *command){
   // TODO chatroom
   if (command->arg_count != 2) {
@@ -670,6 +689,11 @@ int process_command(struct command_t *command) {
     // handle pipes
     int pipeRet = myPipe(command);
     if(pipeRet != 10) return pipeRet;
+    return SUCCESS;
+  }
+
+  if (strcmp(command->name, "wiseman") == 0){
+    wiseman(command);
     return SUCCESS;
   }
 

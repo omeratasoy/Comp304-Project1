@@ -390,7 +390,6 @@ void lsfiles(struct command_t *command){
 }
 
 void wiseman(struct command_t *command){
-  // TODO wiseman
   if(command->arg_count != 1){
     fprintf(stderr, "%d arguments in wiseman. 1 needed\n", command->arg_count);
     return;
@@ -404,11 +403,8 @@ void wiseman(struct command_t *command){
   int oldStdin;
   int newStdin;
   int newStdout;
-  //FILE *tempcron;
   int tempcron;
-  //sprintf(cron, "echo '*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt' >> tempcron", command->args[0]);
   sprintf(cron, "*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt\n", command->args[0]);
-  //printf("hi: %s\n", cron);
   oldStdout = dup(STDOUT_FILENO);
   oldStdin = dup(STDIN_FILENO);
   newStdout = open("tempcron", O_CREAT | O_RDWR | O_TRUNC, 0777);
@@ -418,8 +414,6 @@ void wiseman(struct command_t *command){
   dup2(oldStdout, STDOUT_FILENO);
   close(oldStdout);
   
-  /*tempcron = fopen("tempcron", "a");
-  fprintf(tempcron, "%s", cron);*/
   tempcron = open("tempcron", O_RDWR | O_APPEND);
   write(tempcron, cron, strlen(cron));
   close(tempcron);
@@ -428,14 +422,9 @@ void wiseman(struct command_t *command){
 
   remove("tempcron");
   
-  /*system("crontab -l > tempcron");
-  system(cron);
-  system("crontab tempcron");
-  system("rm tempcron");*/
 }
 
 void chatroom(struct command_t *command){
-  // TODO chatroom
   if (command->arg_count != 2) {
     fprintf(stderr, "%d arguments in chatroom. 2 needed\n", command->arg_count);
     return;
@@ -455,11 +444,9 @@ void chatroom(struct command_t *command){
   strcpy(username, roomname);
   strcat(username, "/");
   strcat(username, username_short);
-  //printf("roomname %s\nusername %s\n", roomname, username);
   mkdir("/tmp", 0755); // fails if directory exists
   mkdir(roomname, 0755); // fails if directory exists
   int errorFifo = mkfifo(username, 0666);
-  // if (errorFifo < 0) return;
   printf("Welcome to %s!\n", roomname_short);
   struct dirent *users;
   DIR *roomFolder;
@@ -473,7 +460,6 @@ void chatroom(struct command_t *command){
       fflush(stdout);
       fifoRead = open(username, O_RDONLY);
       read(fifoRead, readMsg, sizeof(readMsg));
-      //printf("fifoRead\n");
       printf("\r[%s] %s",roomname_short, readMsg);
     }
   } 
@@ -490,45 +476,34 @@ void chatroom(struct command_t *command){
       fflush(stdout);
       getline(&writeMsg, &len, stdinfp);
       while ((users = readdir(roomFolder)) != NULL){
-        //printf("%s %d\n", users->d_name, users->d_type); // d-Type 1 is fifo
 	if (users->d_type != 1) {
-          //printf("%s is not fifo, its type is %d\n", users->d_name, users->d_type);
           continue;
 	}
 	if (strcmp(users->d_name, username_short) == 0){
-	  //printf("skipping %s\n", users->d_name);
 	  continue;
 	}
 	char longUsername[500] = "";
 	strcpy(longUsername, roomname);
 	strcat(longUsername, "/");
 	strcat(longUsername, users->d_name);
-	//printf("long username is %s\n", longUsername);
 	pidWrite = fork();
 	if (pidWrite == 0){
           // Child Write
-	  //printf("attempting to write to %s\n", longUsername);
-	  //getline(&writeMsg, &len, stdinfp);
 	  strcpy(longWriteMsg, username_short);
 	  strcat(longWriteMsg, ": ");
 	  strcat(longWriteMsg, writeMsg);
 	  fifoWrite = open(longUsername, O_WRONLY);
 	  write(fifoWrite, longWriteMsg, sizeof(longWriteMsg));
-	  //longWriteMsg[0] = '\0';
-
           exit(0);
 	}
 	else {
 	  // Parent Write
-	  //printf("waiting on writing to %s\n", longUsername);
 	  waitpid(pidWrite, NULL, 0);
-	  //printf("waited on writing to %s\n", longUsername);
 	}
       }
       closedir(roomFolder);
     }
   }
-  //closedir(roomFolder);
 }
 
 void uniq(struct command_t *command){
@@ -600,8 +575,6 @@ int myPipe(struct command_t *command){
 	      dup2(pipefd[WRITE_END], STDOUT_FILENO);
 	      close(pipefd[READ_END]);
 	      close(pipefd[WRITE_END]);
-	      //execvp(command->name, command->args);
-	      //exit(0);
 	      char *program_path = malloc(500);
 	      strcat(program_path, "/usr/bin/");
 	      strcat(program_path, command->name);
@@ -631,7 +604,6 @@ int myPipe(struct command_t *command){
       waitpid(pipepid1, NULL, 0);
       waitpid(pipepid2, NULL, 0);
       exit(0);
-      // return 0;
 }
 
 int myRedirect(struct command_t *command){ 
@@ -706,15 +678,7 @@ int process_command(struct command_t *command) {
   }
 
   if (strcmp(command->name, "chatroom") == 0) {
-    // TODO chatroom
     chatroom(command);
-    // I/O redirection
-    // <: 0, >: 1, <<: 2
-    int redirectRet = myRedirect(command);
-    if (redirectRet != 0) return redirectRet;
-    // handle pipes
-    int pipeRet = myPipe(command);
-    if(pipeRet != 10) return pipeRet;
     return SUCCESS;
   }
 
@@ -732,7 +696,6 @@ int process_command(struct command_t *command) {
     moodprinter(command);
     return SUCCESS;
   }
-		  
 
   pid_t pid = fork();
   if (pid == 0) // child

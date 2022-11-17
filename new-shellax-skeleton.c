@@ -317,7 +317,7 @@ int main() {
 void moodprinter(struct command_t *command){
   int input = -1;
   int error;
-  printf("How is your mood today?\n");
+  printf("How is your mood today?\n"); // prompt user
   printf("1. happy\n");
   printf("2. sad\n");
   printf("3. angry\n");
@@ -328,7 +328,7 @@ void moodprinter(struct command_t *command){
   printf("8. full of love\n");
   printf("9. cheerful\n");
   printf("10. stunned\n");
-  while (input < 1 || input > 10){
+  while (input < 1 || input > 10){ // assert correct input format
     printf("Choose one of these numbers: ");
     error = scanf("%d", &input);
     if (error != 1) {
@@ -338,7 +338,7 @@ void moodprinter(struct command_t *command){
   if (input > 0 && input < 11){
     printf("This is your mood emoji: ");
   }
-  switch (input) {
+  switch (input) { // print user's mood
 	  case 1:
 		  printf("[^w^]\n");
 		  break;
@@ -376,12 +376,12 @@ void moodprinter(struct command_t *command){
 
 void lsfiles(struct command_t *command){
   // system("python3 lsfiles.py");
-  char *py = "/usr/bin/python3";
+  char *py = "/usr/bin/python3"; // path to python
   char *ls = "./lsfiles.py";
   char *args[] = {py, ls, NULL};
   pid_t pypid = fork();
   if (pypid == 0){
-    execv(py, args);
+    execv(py, args); // execute lsfiles.py using python
     perror("python\n");
   }
   else {
@@ -390,11 +390,11 @@ void lsfiles(struct command_t *command){
 }
 
 void wiseman(struct command_t *command){
-  if(command->arg_count != 1){
+  if(command->arg_count != 1){ // check for correct arguments
     fprintf(stderr, "%d arguments in wiseman. 1 needed\n", command->arg_count);
     return;
   }
-  if (atoi(command->args[0]) <= 0){
+  if (atoi(command->args[0]) <= 0){ // check for correct arguments
     fprintf(stderr, "Please enter a positive integer. You entered %s\n", command->args[0]);
     return;
   }
@@ -404,28 +404,28 @@ void wiseman(struct command_t *command){
   int newStdin;
   int newStdout;
   int tempcron;
-  sprintf(cron, "*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt\n", command->args[0]);
+  sprintf(cron, "*/%s * * * * /usr/games/fortune | /usr/games/cowsay >> /tmp/wisecow.txt\n", command->args[0]); // text to be written into the crontab
   oldStdout = dup(STDOUT_FILENO);
   oldStdin = dup(STDIN_FILENO);
   newStdout = open("tempcron", O_CREAT | O_RDWR | O_TRUNC, 0777);
-  dup2(newStdout, STDOUT_FILENO);
+  dup2(newStdout, STDOUT_FILENO); // redirect stdout to a temp file
   close(newStdout);
-  system("crontab -l");
-  dup2(oldStdout, STDOUT_FILENO);
+  system("crontab -l"); // save current crontab in the temp file
+  dup2(oldStdout, STDOUT_FILENO); // restore stdout
   close(oldStdout);
   
   tempcron = open("tempcron", O_RDWR | O_APPEND);
-  write(tempcron, cron, strlen(cron));
+  write(tempcron, cron, strlen(cron)); // add the wiseman job to the temp file
   close(tempcron);
 
-  system("crontab tempcron");
+  system("crontab tempcron"); // update crontab using the temp file
 
-  remove("tempcron");
+  remove("tempcron"); // remove the temp file
   
 }
 
 void chatroom(struct command_t *command){
-  if (command->arg_count != 2) {
+  if (command->arg_count != 2) { // check argument count
     fprintf(stderr, "%d arguments in chatroom. 2 needed\n", command->arg_count);
     return;
   }
@@ -445,7 +445,7 @@ void chatroom(struct command_t *command){
   strcat(username, "/");
   strcat(username, username_short);
   mkdir("/tmp", 0755); // fails if directory exists
-  mkdir(roomname, 0755); // fails if directory exists
+  mkdir(roomname, 0755); // fails if directory exists, create chatroom folder
   int errorFifo = mkfifo(username, 0666);
   printf("Welcome to %s!\n", roomname_short);
   struct dirent *users;
@@ -457,7 +457,7 @@ void chatroom(struct command_t *command){
     while (1){
       // READ
       printf("\r[%s] %s > ", roomname_short, username_short);
-      fflush(stdout);
+      fflush(stdout); // used to undo the prompt message when a message comes
       fifoRead = open(username, O_RDONLY);
       read(fifoRead, readMsg, sizeof(readMsg));
       printf("\r[%s] %s",roomname_short, readMsg);
@@ -473,13 +473,13 @@ void chatroom(struct command_t *command){
         return;
       }
       printf("\r[%s] %s > ", roomname_short, username_short);
-      fflush(stdout);
-      getline(&writeMsg, &len, stdinfp);
-      while ((users = readdir(roomFolder)) != NULL){
-	if (users->d_type != 1) {
+      fflush(stdout); // used to undo the prompt message when a message comes
+      getline(&writeMsg, &len, stdinfp); // wait for a message to be written, then save it
+      while ((users = readdir(roomFolder)) != NULL){ // iterate over the fifo's in the directory
+	if (users->d_type != 1) { // not a fifo
           continue;
 	}
-	if (strcmp(users->d_name, username_short) == 0){
+	if (strcmp(users->d_name, username_short) == 0){ // the writer's fifo, skip it
 	  continue;
 	}
 	char longUsername[500] = "";
@@ -487,7 +487,7 @@ void chatroom(struct command_t *command){
 	strcat(longUsername, "/");
 	strcat(longUsername, users->d_name);
 	pidWrite = fork();
-	if (pidWrite == 0){
+	if (pidWrite == 0){ // write to all fifo's using separate children
           // Child Write
 	  strcpy(longWriteMsg, username_short);
 	  strcat(longWriteMsg, ": ");
@@ -508,7 +508,7 @@ void chatroom(struct command_t *command){
 
 void uniq(struct command_t *command){
   bool cFlag = false;
-  if (command->arg_count>0 && (strcmp(command->args[0], "--count") == 0 || strcmp(command->args[0], "-c") == 0)){
+  if (command->arg_count>0 && (strcmp(command->args[0], "--count") == 0 || strcmp(command->args[0], "-c") == 0)){ // set the flag if -c or --count option is given
     cFlag = true;
   }
   FILE *fp = stdin;
@@ -518,13 +518,13 @@ void uniq(struct command_t *command){
   ssize_t error;
   ssize_t error2;
   int count = 1;
-  error = getline(&current, &len, fp);
-  while((error = getline(&next, &len, fp)) >= 0){
-    if(strcmp(current, next) == 0){
+  error = getline(&current, &len, fp); // read the first line
+  while((error = getline(&next, &len, fp)) >= 0){ // read lines until EOF
+    if(strcmp(current, next) == 0){ // if the lines are the same, increase the count, do not print
       count++;
       continue;
     }
-    else{
+    else{ // a line with new values is seen, print the previous line
       if (cFlag){
         printf("%6d %s", count, current);
       }
@@ -535,7 +535,7 @@ void uniq(struct command_t *command){
       strcpy(current, next);
     }
   }
-  if (strlen(next)>0){
+  if (strlen(next)>0){ // handle edge cases
     if (cFlag){
       printf("%6d %s", count, current);
     }
@@ -551,7 +551,7 @@ void uniq(struct command_t *command){
       printf("%s", current);
     }
   }
-  if(current){
+  if(current){ // prevent memory leaks
     free(current);
   }
   if(next){
@@ -560,25 +560,25 @@ void uniq(struct command_t *command){
 }
 
 int myPipe(struct command_t *command){ 
-      if (!(command->next)) return 10;
+      if (!(command->next)) return 10; // return if piping is not needed
       int pipefd[2];
-      if (pipe(pipefd) == -1){
+      if (pipe(pipefd) == -1){ // create pipe, handle errors
 	      perror("Error in pipe pipe\n");
 	      return 1;
       }
-      int pipepid1 = fork();
-      if (pipepid1 < 0) {
+      int pipepid1 = fork(); // create child process
+      if (pipepid1 < 0) { // handle errors
 	      perror("Error in pipe fork 1\n");
 	      return 1;
       }
       if (pipepid1 == 0){
-	      dup2(pipefd[WRITE_END], STDOUT_FILENO);
+	      dup2(pipefd[WRITE_END], STDOUT_FILENO); // redirect stdout of the first command to the pipe
 	      close(pipefd[READ_END]);
 	      close(pipefd[WRITE_END]);
 	      char *program_path = malloc(500);
 	      strcat(program_path, "/usr/bin/");
 	      strcat(program_path, command->name);
-	      execv(program_path, command->args);
+	      execv(program_path, command->args); // execute the first command
 	      // execvp(command->name, command->args); // exec+args+path    
 	      // execv has returned, the program path was not found, memory leak risk
 	      free(program_path);
@@ -590,18 +590,18 @@ int myPipe(struct command_t *command){
 	      return 1;
       }
       if (pipepid2 == 0) {
-	      dup2(pipefd[READ_END], STDIN_FILENO);
+	      dup2(pipefd[READ_END], STDIN_FILENO); // redirect stdin of the second command to the pipe
 	      close(pipefd[READ_END]);
 	      close(pipefd[WRITE_END]);
 	      
               command = command->next; 
-	      process_command(command);
+	      process_command(command); // process the second command
 	      exit(0);
       }
-
-      close(pipefd[READ_END]);
+      // parent
+      close(pipefd[READ_END]); // close the pipes 
       close(pipefd[WRITE_END]);
-      waitpid(pipepid1, NULL, 0);
+      waitpid(pipepid1, NULL, 0); // wait until both processes finish
       waitpid(pipepid2, NULL, 0);
       exit(0);
 }
@@ -609,11 +609,12 @@ int myPipe(struct command_t *command){
 int myRedirect(struct command_t *command){ 
     if (command->redirects[0]){
       //printf("< : %s\n", command->redirects[0]);
-      const char* inputfile = command->redirects[0];
+
+      const char* inputfile = command->redirects[0]; // file to redirect stdin
       if (inputfile){
-        int fd = open(inputfile, O_RDONLY, 0666);
-	int error = dup2(fd, STDIN_FILENO);
-	if (error == -1){
+        int fd = open(inputfile, O_RDONLY, 0666); // open it as readonly
+	int error = dup2(fd, STDIN_FILENO); // redirect stdin to the file
+	if (error == -1){ // handle errors
 		perror("Error in redirect 0\n");
 		return 1;
 	}
@@ -622,11 +623,11 @@ int myRedirect(struct command_t *command){
     if (command->redirects[1]){ 
       //printf("> : %s\n", command->redirects[1]);
       
-      const char* outputfile = command->redirects[1];
+      const char* outputfile = command->redirects[1]; // file to redirect stdout as overwrite
       if (outputfile){
-        int fd = open(outputfile, O_CREAT | O_WRONLY | O_TRUNC, 0666);
-	int error = dup2(fd, STDOUT_FILENO);
-	if (error == -1){
+        int fd = open(outputfile, O_CREAT | O_WRONLY | O_TRUNC, 0666); // open it as writeonly, create, truncate if it exists
+	int error = dup2(fd, STDOUT_FILENO); // redirect stdout to the file
+	if (error == -1){ // handle errors
 		perror("Error in redirect 1\n");
 		return 1;
 	}
@@ -635,11 +636,11 @@ int myRedirect(struct command_t *command){
     if (command->redirects[2]){ 
       //printf(">> : %s\n", command->redirects[2]);
       
-      const char* appendfile = command->redirects[2];
+      const char* appendfile = command->redirects[2]; // file to redirect stdout as append
       if (appendfile){
-        int fd = open(appendfile, O_CREAT | O_WRONLY | O_APPEND, 0666);
-	int error = dup2(fd, STDOUT_FILENO);
-	if (error == -1){
+        int fd = open(appendfile, O_CREAT | O_WRONLY | O_APPEND, 0666); // open it as writeonly, create, append if it exists
+	int error = dup2(fd, STDOUT_FILENO); // redirect stdout to the file
+	if (error == -1){ // handle errors
 		perror("Error in redirect 0\n");
 		return 1;
 	}
@@ -665,6 +666,8 @@ int process_command(struct command_t *command) {
     }
   }
 
+  // below are the custom commands
+  // they call their respective functions and return
   if (strcmp(command->name, "uniq") == 0) {
     uniq(command); 
     int redirectRet = myRedirect(command);
@@ -733,7 +736,7 @@ int process_command(struct command_t *command) {
     
     
     char *program_path = malloc(500);
-    strcat(program_path, "/usr/bin/");
+    strcat(program_path, "/usr/bin/"); // common commands are stored under this folder
     strcat(program_path, command->name);
     execv(program_path, command->args);
     // execvp(command->name, command->args); // exec+args+path
